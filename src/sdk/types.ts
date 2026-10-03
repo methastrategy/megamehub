@@ -1,0 +1,43 @@
+export type GameCategory = 'all' | 'party' | '1v1' | 'arcade' | 'custom';
+
+export interface GameMetadata {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  category: GameCategory;
+  tags: string[];
+  icon: string;
+  gradient: string;
+  players: string;
+  isOfflineReady: boolean;
+  hasMotionControls?: boolean;
+  rating: number;
+  playCount: number;
+}
+
+export interface PlayerProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  coins: number;
+  unlockedDecks: string[];
+  highScores: Record<string, number>;
+}
+
+export interface ChayenDeck {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  color: string;
+  words: string[];
+  isCustom?: boolean;
+}
+
+export interface GameScoreResult {
+  gameId: string;
+  score: number;
+  coinsEarned: number;
+  stats?: Record<string, unknown>;
+}
