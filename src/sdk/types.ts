@@ -1,4 +1,4 @@
-export type GameCategory = 'all' | 'party' | 'cards' | 'casino' | '1v1' | 'arcade' | 'custom';
+export type GameCategory = 'all' | 'party' | 'cards' | 'casino' | '1v1' | 'arcade' | 'puzzle' | 'custom';
 
 export interface GameMetadata {
   id: string;

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { 
   Search, Sparkles, Flame, Users, Swords, 
-  Gamepad2, ArrowRight, ShieldCheck, Heart, Crown, Coins, Beer
+  Gamepad2, ArrowRight, ShieldCheck, Heart, Crown, Coins, Beer, Type
 } from 'lucide-react';
 import type { GameMetadata, GameCategory } from './sdk/types';
 import { HubHeader } from './components/HubHeader';
@@ -16,6 +16,8 @@ import { BaccaratGame } from './games/baccarat/BaccaratGame';
 import { SlaveGame } from './games/slave/SlaveGame';
 import { DummyGame } from './games/dummy/DummyGame';
 import { PokerGame } from './games/poker/PokerGame';
+import { WordleGame } from './games/wordle/WordleGame';
+import { RPSTournamentGame } from './games/rps/RPSTournamentGame';
 import { bridge } from './sdk/MeGameBridge';
 
 const GAME_CATALOG: GameMetadata[] = [
@@ -47,6 +49,34 @@ const GAME_CATALOG: GameMetadata[] = [
     isOfflineReady: true,
     rating: 4.9,
     playCount: 1420
+  },
+  {
+    id: 'rps',
+    title: 'เป่ายิ้งฉุบ Tournament',
+    subtitle: 'ทัวร์นาเมนต์ประลองค้อนกรรไกรกระดาษ',
+    description: 'จัดสายแข่ง Bracket 4 คน สลับกันดวล 1v1 นับถอยหลัง 3-2-1 ใครได้แต้มตามเป้าก่อนคว้าถ้วยแชมเปียนประจำวงปาร์ตี้',
+    category: 'party',
+    tags: ['Party', 'Tournament', 'Offline', 'Pass & Play'],
+    icon: '✊',
+    gradient: 'from-orange-600 via-amber-600 to-yellow-500',
+    players: '2 - 4 คน',
+    isOfflineReady: true,
+    rating: 4.8,
+    playCount: 980
+  },
+  {
+    id: 'wordle',
+    title: 'Wordle ทายคำ (TH / EN)',
+    subtitle: 'เกมพัซเซิลทายคำศัพท์ 2 ภาษา',
+    description: 'ทายคำศัพท์ปริศนา 5 ตัวอักษร มีโอกาส 6 ครั้ง พร้อมสีช่วยใบ้ (เขียว/เหลือง/เทา) สลับเล่นได้ทั้งหมวดภาษาไทย 🇹🇭 และภาษาอังกฤษ 🇬🇧',
+    category: 'puzzle',
+    tags: ['Puzzle', 'Wordle', 'Bilingual', 'Daily Word'],
+    icon: '🟩',
+    gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
+    players: '1 คน',
+    isOfflineReady: true,
+    rating: 4.9,
+    playCount: 1720
   },
   {
     id: 'slave',
@@ -178,6 +208,12 @@ export function App() {
   if (activeGameId === 'doraemon') {
     return <DoraemonPartyGame onBackToHub={handleBackToHub} />;
   }
+  if (activeGameId === 'rps') {
+    return <RPSTournamentGame onBackToHub={handleBackToHub} />;
+  }
+  if (activeGameId === 'wordle') {
+    return <WordleGame onBackToHub={handleBackToHub} />;
+  }
   if (activeGameId === 'slave') {
     return <SlaveGame onBackToHub={handleBackToHub} />;
   }
@@ -213,13 +249,13 @@ export function App() {
           <div className="relative z-10 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>ศูนย์รวม 9 เกมปาร์ตี้ & เกมไพ่ออฟไลน์</span>
+              <span>ศูนย์รวม 11 เกมปาร์ตี้, เกมไพ่ & มินิเกมออฟไลน์</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight mb-2">
-              เปิดเล่น <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">Chayen & เกมไพ่วงเพื่อน</span> ได้ทันที
+              เปิดเล่น <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">Chayen, ไพ่วงเพื่อน & Wordle</span> ได้ทันที
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
-              ทายคำติดหน้าผาก, ไพ่โดเรม่อนวงสังสรรค์, ไพ่สลาฟ, ดัมมี่, โป๊กเกอร์ และแบล็คแจ็ค เล่นออฟไลน์ได้ 100% โดยไม่ต้องโหลดแอปแยก
+              ทายคำติดหน้าผาก, ไพ่โดเรม่อน, ไพ่สลาฟ, ดัมมี่, โป๊กเกอร์, แบล็คแจ็ค, เป่ายิ้งฉุบ Tournament และ Wordle (ไทย/อังกฤษ) เล่นออฟไลน์ได้ 100%
             </p>
             <div className="flex flex-wrap gap-3">
               <button
@@ -231,6 +267,16 @@ export function App() {
               >
                 <span>เล่น Chayen ชาเย็น</span>
                 <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  bridge.playSfx('click');
+                  setActiveGameId('wordle');
+                }}
+                className="px-5 py-3 rounded-2xl bg-slate-900 border border-emerald-500/40 text-emerald-300 hover:text-white font-bold text-sm hover:bg-slate-800 transition flex items-center gap-2"
+              >
+                <Type className="w-4 h-4 text-emerald-400" />
+                <span>Wordle (TH/EN)</span>
               </button>
               <button
                 onClick={() => {
@@ -267,9 +313,10 @@ export function App() {
           {/* Category Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
             {[
-              { id: 'all', label: 'ทั้งหมด', icon: <Gamepad2 className="w-4 h-4" /> },
+              { id: 'all', label: 'ทั้งหมด (11)', icon: <Gamepad2 className="w-4 h-4" /> },
               { id: 'cards', label: 'ไพ่ (สลาฟ/ดัมมี่)', icon: <Crown className="w-4 h-4" /> },
               { id: 'party', label: 'ปาร์ตี้ / วงเพื่อน', icon: <Users className="w-4 h-4" /> },
+              { id: 'puzzle', label: 'พัซเซิล (Wordle)', icon: <Type className="w-4 h-4" /> },
               { id: 'casino', label: 'คาสิโนชิป', icon: <Coins className="w-4 h-4" /> },
               { id: '1v1', label: '1v1 ประลอง', icon: <Swords className="w-4 h-4" /> },
               { id: 'arcade', label: 'อาร์เคด', icon: <Flame className="w-4 h-4" /> }
@@ -297,7 +344,7 @@ export function App() {
             <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="ค้นหาเกม (เช่น ดัมมี่, สลาฟ, Chayen)..."
+              placeholder="ค้นหาเกม (เช่น Wordle, สลาฟ, ดัมมี่)..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 transition"
@@ -349,7 +396,7 @@ export function App() {
             <div>
               <h4 className="text-sm font-bold text-white">เล่นออฟไลน์ได้ 100%</h4>
               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                ระบบแคชเกมด้วย PWA Service Worker อยู่บนเครื่องบินหรือไม่มีเน็ตก็เปิดเล่น Chayen, สลาฟ, ดัมมี่, และเกมอื่นๆ ได้ครบ
+                ระบบแคชเกมด้วย PWA Service Worker อยู่บนเครื่องบินหรือไม่มีเน็ตก็เปิดเล่น Chayen, สลาฟ, ดัมมี่, Wordle และเกมอื่นๆ ได้ครบ
               </p>
             </div>
           </div>
@@ -361,7 +408,7 @@ export function App() {
             <div>
               <h4 className="text-sm font-bold text-white">Party & Card Arena</h4>
               <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                ครบทั้งปาร์ตี้ทายคำ, ไพ่วงสังสรรค์โดเรม่อน, สลาฟ 4 คน, ดัมมี่, โป๊กเกอร์ และแบล็คแจ็ค
+                ครบทั้งปาร์ตี้ทายคำ, เป่ายิ้งฉุบ Tournament, ไพ่วงสังสรรค์โดเรม่อน, สลาฟ 4 คน, ดัมมี่, โป๊กเกอร์ และแบล็คแจ็ค
               </p>
             </div>
           </div>
