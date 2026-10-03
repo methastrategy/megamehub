@@ -1,32 +1,22 @@
-# React + TypeScript + Vite
+# MeGAMEHUB 🎮
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+ศูนย์รวมเกม All-in-One สไตล์ Poki / Y8 / WeChat Mini Games บนเว็บและมือถือ
+รองรับการเล่นออฟไลน์ 100% (PWA) และพร้อมแปลงเป็น `.ipa` สำหรับส่ง App Store ตามข้อกำหนด Apple Guideline 4.7
 
-Currently, two official plugins are available:
+## 🚀 ฟีเจอร์หลัก
+* **Chayen (ชาเย็น):** เกมทายคำปาร์ตี้ติดหน้าผาก รองรับเซนเซอร์ก้ม-เงย (Gyroscope) และระบบสร้างสำรับคำศัพท์เอง
+* **Card Clash 1v1:** ไพ่ประลองไหวพริบ & ธาตุ (Pass & Play เล่นบนเครื่องเดียวกัน หรือสู้กับ AI)
+* **Neon Snake:** เกมงูเรโทรนีออน ควบคุมด้วยสัมผัส D-Pad และคีย์บอร์ด
+* **PWA & Offline Ready:** มี Service Worker แคชตัวเกม ไม่ต้องต่อเน็ตก็เล่นได้
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠️ คำสั่งเริ่มต้น
+```bash
+# ติดตั้ง dependencies
+npm install
 
-## React Compiler
+# รันโหมด Development
+npm run dev
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# คอมไพล์โปรเจกต์
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
