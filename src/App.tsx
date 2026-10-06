@@ -19,6 +19,9 @@ import { DummyGame } from './games/dummy/DummyGame';
 import { PokerGame } from './games/poker/PokerGame';
 import { WordleGame } from './games/wordle/WordleGame';
 import { RPSTournamentGame } from './games/rps/RPSTournamentGame';
+import { TwentyFortyEightGame } from './games/twentyfortyeight/TwentyFortyEightGame';
+import { TetrisGame } from './games/tetris/TetrisGame';
+import { SnookerPoolGame } from './games/pool/SnookerPoolGame';
 import { bridge } from './sdk/MeGameBridge';
 
 const GAME_CATALOG: GameMetadata[] = [
@@ -165,19 +168,62 @@ const GAME_CATALOG: GameMetadata[] = [
   },
   {
     id: 'neonsnake',
-    title: 'Neon Snake Arcade',
-    subtitle: 'เกมงูนีออนสไตล์เรโทร Y8',
-    description: 'เกมงูคลาสสิกอัปเกรดกราฟิกนีออนและปุ่มสัมผัสเสมือนจริง D-Pad ลื่นไหล สะสมคะแนนแลกเหรียญ Hub',
+    title: 'Neon Snake 2.0 Overdrive',
+    subtitle: 'เกมงูนีออนเก็บพลังไอเทมพิเศษ',
+    description: 'เกมงูคลาสสิกยกเครื่องใหม่ด้วย Synthwave Glow, Particle Trail และระบบ Power-up (ความเร็วเทอร์โบ x2, สโลว์โมชั่นเข้ามุมแคบ, เพชรโบนัส)',
     category: 'arcade',
-    tags: ['Arcade', 'Offline', 'Classic', 'Touch D-Pad'],
+    tags: ['Arcade', 'Offline', 'Power-ups', 'Synthwave'],
     icon: '🐍',
     gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
     players: '1 คน',
     isOfflineReady: true,
-    rating: 4.7,
-    playCount: 950
+    rating: 4.9,
+    playCount: 1680
+  },
+  {
+    id: 'twentyfortyeight',
+    title: '2048 Neon Edition',
+    subtitle: 'เลื่อนรวมบล็อกตัวเลขสู่ 2048',
+    description: 'พัซเซิลคณิตศาสตร์ยอดฮิตระดับโลก ปัดลากรวมตัวเลข 2, 4, 8... สู่ 2048 รองรับทั้ง Swipe จอมือถือและ Arrow Keys พร้อมระบบ Undo',
+    category: 'puzzle',
+    tags: ['Puzzle', 'Offline', 'High Score', 'Touch Swipe'],
+    icon: '🧩',
+    gradient: 'from-amber-500 via-orange-500 to-rose-600',
+    players: '1 คน',
+    isOfflineReady: true,
+    rating: 4.9,
+    playCount: 2150
+  },
+  {
+    id: 'tetris',
+    title: 'Tetris Classic Matrix',
+    subtitle: 'เกมบล็อกตัวต่อระดับตำนาน',
+    description: 'กระดาน 10x20 มาตรฐานพร้อมระบบ Super Rotation System (SRS), Ghost Piece เงาจุดตก, ช่องสลับ Hold และ Next Block Queue 3 ชิ้น',
+    category: 'arcade',
+    tags: ['Arcade', 'Offline', 'Classic', 'SRS Matrix'],
+    icon: '🧱',
+    gradient: 'from-cyan-500 via-blue-600 to-indigo-600',
+    players: '1 คน',
+    isOfflineReady: true,
+    rating: 5.0,
+    playCount: 2890
+  },
+  {
+    id: 'pool',
+    title: '8-Ball Pool & Snooker Master',
+    subtitle: 'เกมพูล & สนุ๊กเกอร์ฟิสิกส์ 2D',
+    description: 'โต๊ะพูลมาตรฐาน 6 หลุมด้วยระบบ Vector Physics ชนลูกเด้งชิ่งสมจริง พร้อมเส้นเล็งเลเซอร์และเกจวัดความแรงไม้คิว สลับโหมด 8-Ball และ สนุ๊กเกอร์ได้',
+    category: '1v1',
+    tags: ['1v1 Arena', 'Physics 2D', 'Snooker', '8-Ball'],
+    icon: '🎱',
+    gradient: 'from-emerald-700 via-teal-800 to-slate-900',
+    players: '1 - 2 คน',
+    isOfflineReady: true,
+    rating: 4.9,
+    playCount: 2310
   }
 ];
+
 
 export function App() {
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
@@ -236,6 +282,15 @@ export function App() {
   }
   if (activeGameId === 'neonsnake') {
     return <NeonSnakeGame onBackToHub={handleBackToHub} />;
+  }
+  if (activeGameId === 'twentyfortyeight') {
+    return <TwentyFortyEightGame onBackToHub={handleBackToHub} />;
+  }
+  if (activeGameId === 'tetris') {
+    return <TetrisGame onBackToHub={handleBackToHub} />;
+  }
+  if (activeGameId === 'pool') {
+    return <SnookerPoolGame onBackToHub={handleBackToHub} />;
   }
 
   // Render Hub Lobby

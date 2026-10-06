@@ -5,6 +5,8 @@ import type { Card } from '../../engines/card/CardTypes';
 import { DeckEngine } from '../../engines/card/Deck';
 import { CardVisual } from '../../engines/card/CardVisual';
 import { bridge } from '../../sdk/MeGameBridge';
+import { DealerAvatar, type DealerMood } from '../../components/table/DealerAvatar';
+import { FirstPersonHands } from '../../components/table/FirstPersonHands';
 
 interface BaccaratGameProps {
   onBackToHub: () => void;
@@ -28,6 +30,9 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
   const [resultMessage, setResultMessage] = useState<string>('');
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [playerCoins, setPlayerCoins] = useState<number>(() => bridge.getProfile().coins);
+  const [dealerMood, setDealerMood] = useState<DealerMood>('idle');
+  const [dealerSpeech, setDealerSpeech] = useState<string>('เลือกเดิมพัน Player, Banker หรือ Tie ได้เลยครับ');
+  const [isDealingAnim, setIsDealingAnim] = useState<boolean>(false);
 
   useEffect(() => {
     return bridge.subscribe(p => setPlayerCoins(p.coins));
@@ -41,6 +46,9 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
 
     setIsPlaying(true);
     setResultMessage('');
+    setIsDealingAnim(true);
+    setDealerMood('dealing');
+    setDealerSpeech('แจกไพ่บาคาร่าครับ! Player ปะทะ Banker ลุ้น 8-9 ป๊อก!');
 
     // Deduct bet
     bridge.recordGameResult({
@@ -64,13 +72,14 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
     let pHand = [p1, p2];
     let bHand = [b1, b2];
 
-    setPlayerHand(pHand);
-    setBankerHand(bHand);
-    setShoe(currentShoe);
-    bridge.playSfx('click');
-
-    // Simulate dealing sequence
     setTimeout(() => {
+      setIsDealingAnim(false);
+      setDealerMood('idle');
+      setPlayerHand(pHand);
+      setBankerHand(bHand);
+      setShoe(currentShoe);
+      bridge.playSfx('click');
+
       let pScore = DeckEngine.calculateBaccaratScore(pHand);
       let bScore = DeckEngine.calculateBaccaratScore(bHand);
 
@@ -117,7 +126,7 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
       setTimeout(() => {
         finishRound(pHand, bHand, pScore, bScore);
       }, 500);
-    }, 800);
+    }, 600);
   };
 
   const finishRound = (_pHand: Card[], _bHand: Card[], pScore: number, bScore: number) => {
@@ -142,9 +151,13 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
 
       bridge.playSfx('victory');
       confetti({ particleCount: 70, spread: 60 });
+      setDealerMood('shocked');
+      setDealerSpeech(`ยินดีด้วยครับเฮีย! แทงฝั่ง ${winner.toUpperCase()} กินเต็มเหนี่ยว!`);
       setResultMessage(`🎉 คุณชนะ! ${winner.toUpperCase()} ชนะ (${pScore} ต่อ ${bScore}) รับ ${payout} เหรียญ`);
     } else {
       bridge.playSfx('gameover');
+      setDealerMood('happy');
+      setDealerSpeech(`ฝั่ง ${winner.toUpperCase()} เข้าป้าย (${pScore} ต่อ ${bScore}) สู้ใหม่ตาหน้าครับ!`);
       setResultMessage(`${winner.toUpperCase()} ชนะ (${pScore} ต่อ ${bScore}) รอบนี้ไม่ถูกรางวัล`);
     }
 
@@ -158,6 +171,7 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
 
     setIsPlaying(false);
   };
+
 
   const pScore = DeckEngine.calculateBaccaratScore(playerHand);
   const bScore = DeckEngine.calculateBaccaratScore(bankerHand);
@@ -184,161 +198,186 @@ export const BaccaratGame: React.FC<BaccaratGameProps> = ({ onBackToHub }) => {
       </div>
 
       {/* Main Table Arena */}
-      <div className="flex-1 flex flex-col justify-between bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border-2 border-indigo-600/30 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
-        {/* Bead Plate Road History */}
-        {history.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none mb-3">
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mr-1">Road:</span>
-            {history.map((rec, idx) => (
-              <span
-                key={idx}
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  rec.winner === 'player'
-                    ? 'bg-blue-600 text-white'
-                    : rec.winner === 'banker'
-                    ? 'bg-rose-600 text-white'
-                    : 'bg-emerald-600 text-white'
-                }`}
-                title={`P: ${rec.pScore} vs B: ${rec.bScore}`}
-              >
-                {rec.winner === 'player' ? 'P' : rec.winner === 'banker' ? 'B' : 'T'}
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="flex-1 flex flex-col justify-between bg-gradient-to-b from-indigo-950/70 via-slate-900 to-slate-950 border-2 border-indigo-500/40 rounded-3xl p-4 sm:p-6 relative overflow-hidden shadow-2xl">
+        {/* Table Radial Felt Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-600/20 via-transparent to-transparent pointer-events-none" />
 
-        {/* Card Stage: Player vs Banker */}
-        <div className="grid grid-cols-2 gap-4 my-auto py-4">
+        {/* Dealer Area Top */}
+        <div className="flex flex-col items-center relative z-10">
+          <DealerAvatar
+            mood={dealerMood}
+            speechText={dealerSpeech}
+            name="ดีลเลอร์ หลินฮุ่ย"
+            isDealing={isDealingAnim}
+          />
+
+          {/* Bead Plate Road History */}
+          {history.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto max-w-xs sm:max-w-md py-1 px-3 bg-black/40 rounded-full border border-white/10 mt-2 scrollbar-none shadow-inner">
+              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mr-1">Road:</span>
+              {history.map((rec, idx) => (
+                <span
+                  key={idx}
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow ${
+                    rec.winner === 'player'
+                      ? 'bg-blue-600 text-white'
+                      : rec.winner === 'banker'
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-emerald-600 text-white'
+                  }`}
+                  title={`P: ${rec.pScore} vs B: ${rec.bScore}`}
+                >
+                  {rec.winner === 'player' ? 'P' : rec.winner === 'banker' ? 'B' : 'T'}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Card Stage: Player vs Banker Table Felt */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 my-2 relative z-10">
           {/* Player Side */}
-          <div className="flex flex-col items-center p-4 rounded-2xl bg-blue-950/20 border border-blue-500/30">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-sm font-black text-blue-400">PLAYER</span>
+          <div className="flex flex-col items-center p-3 sm:p-4 rounded-2xl bg-blue-950/40 border border-blue-500/40 shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-xs sm:text-sm font-black text-blue-300">PLAYER</span>
               {playerHand.length > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono font-bold text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 font-mono font-bold text-xs">
                   แต้ม: {pScore}
                 </span>
               )}
             </div>
 
-            <div className="flex gap-2 min-h-[96px] items-center">
-              {playerHand.map(card => (
-                <CardVisual key={card.id} card={card} size="md" />
-              ))}
+            <div className="flex gap-2 min-h-[96px] items-center justify-center">
+              {playerHand.length === 0 ? (
+                <div className="text-xs text-blue-400/40 italic">รอแจกไพ่</div>
+              ) : (
+                playerHand.map(card => (
+                  <CardVisual key={card.id} card={card} size="md" />
+                ))
+              )}
             </div>
           </div>
 
           {/* Banker Side */}
-          <div className="flex flex-col items-center p-4 rounded-2xl bg-rose-950/20 border border-rose-500/30">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-3 h-3 rounded-full bg-rose-500" />
-              <span className="text-sm font-black text-rose-400">BANKER</span>
+          <div className="flex flex-col items-center p-3 sm:p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-xs sm:text-sm font-black text-rose-300">BANKER</span>
               {bankerHand.length > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono font-bold text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/30 text-rose-200 font-mono font-bold text-xs">
                   แต้ม: {bScore}
                 </span>
               )}
             </div>
 
-            <div className="flex gap-2 min-h-[96px] items-center">
-              {bankerHand.map(card => (
-                <CardVisual key={card.id} card={card} size="md" />
-              ))}
+            <div className="flex gap-2 min-h-[96px] items-center justify-center">
+              {bankerHand.length === 0 ? (
+                <div className="text-xs text-rose-400/40 italic">รอแจกไพ่</div>
+              ) : (
+                bankerHand.map(card => (
+                  <CardVisual key={card.id} card={card} size="md" />
+                ))
+              )}
             </div>
           </div>
         </div>
 
         {/* Result Message */}
         {resultMessage && (
-          <div className="my-2 py-2 px-4 rounded-xl text-center font-bold text-sm bg-slate-800 border border-slate-700 text-amber-300 animate-scale-up">
+          <div className="my-1 py-2 px-4 rounded-xl text-center font-bold text-sm bg-slate-900/90 border border-amber-500/40 text-amber-300 animate-scale-up shadow-xl relative z-10">
             {resultMessage}
           </div>
         )}
 
-        {/* Betting Controls */}
-        <div className="flex flex-col gap-3 pt-3 border-t border-slate-800">
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              disabled={isPlaying}
-              onClick={() => {
-                setSelectedBet('player');
-                bridge.playSfx('click');
-              }}
-              className={`py-3.5 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                selectedBet === 'player'
-                  ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400 -translate-y-1'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span className="font-black text-sm">PLAYER (น้ำเงิน)</span>
-              <span className="text-[10px] opacity-80">จ่าย 1:1</span>
-            </button>
+        {/* First-Person POV Controls & Hands */}
+        <FirstPersonHands isBetting={isPlaying}>
+          <div className="flex flex-col gap-2.5 w-full max-w-md">
+            {/* Bet Target Selectors */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                disabled={isPlaying}
+                onClick={() => {
+                  setSelectedBet('player');
+                  bridge.playSfx('click');
+                }}
+                className={`py-2.5 rounded-xl border flex flex-col items-center justify-center transition-all ${
+                  selectedBet === 'player'
+                    ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/40 ring-2 ring-blue-400 -translate-y-1'
+                    : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="font-black text-xs sm:text-sm">PLAYER (น้ำเงิน)</span>
+                <span className="text-[10px] opacity-80">1 : 1</span>
+              </button>
 
-            <button
-              disabled={isPlaying}
-              onClick={() => {
-                setSelectedBet('tie');
-                bridge.playSfx('click');
-              }}
-              className={`py-3.5 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                selectedBet === 'tie'
-                  ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400 -translate-y-1'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span className="font-black text-sm">TIE (เสมอ)</span>
-              <span className="text-[10px] opacity-80">จ่าย 8:1</span>
-            </button>
+              <button
+                disabled={isPlaying}
+                onClick={() => {
+                  setSelectedBet('tie');
+                  bridge.playSfx('click');
+                }}
+                className={`py-2.5 rounded-xl border flex flex-col items-center justify-center transition-all ${
+                  selectedBet === 'tie'
+                    ? 'bg-emerald-600 border-emerald-400 text-white shadow-lg shadow-emerald-500/40 ring-2 ring-emerald-400 -translate-y-1'
+                    : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="font-black text-xs sm:text-sm">TIE (เสมอ)</span>
+                <span className="text-[10px] opacity-80">8 : 1</span>
+              </button>
 
-            <button
-              disabled={isPlaying}
-              onClick={() => {
-                setSelectedBet('banker');
-                bridge.playSfx('click');
-              }}
-              className={`py-3.5 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                selectedBet === 'banker'
-                  ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-500/30 ring-2 ring-rose-400 -translate-y-1'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              <span className="font-black text-sm">BANKER (แดง)</span>
-              <span className="text-[10px] opacity-80">จ่าย 0.95:1</span>
-            </button>
-          </div>
-
-          {/* Amount selector and Deal button */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 mt-1">
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-2xl w-full sm:w-auto justify-center">
-              {[10, 25, 50, 100].map(amt => (
-                <button
-                  key={amt}
-                  disabled={isPlaying}
-                  onClick={() => {
-                    setBetAmount(amt);
-                    bridge.playSfx('click');
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
-                    betAmount === amt
-                      ? 'bg-amber-500 text-slate-950 shadow'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  🪙 {amt}
-                </button>
-              ))}
+              <button
+                disabled={isPlaying}
+                onClick={() => {
+                  setSelectedBet('banker');
+                  bridge.playSfx('click');
+                }}
+                className={`py-2.5 rounded-xl border flex flex-col items-center justify-center transition-all ${
+                  selectedBet === 'banker'
+                    ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-500/40 ring-2 ring-rose-400 -translate-y-1'
+                    : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="font-black text-xs sm:text-sm">BANKER (แดง)</span>
+                <span className="text-[10px] opacity-80">0.95 : 1</span>
+              </button>
             </div>
 
-            <button
-              disabled={isPlaying}
-              onClick={dealBaccarat}
-              className="w-full sm:flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-black text-sm hover:brightness-110 active:scale-95 shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>{isPlaying ? 'กำลังแจกไพ่...' : `วางเดิมพัน (${betAmount} เหรียญ)`}</span>
-            </button>
+            {/* Amount selector and Deal button */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 mt-1">
+              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-xl w-full sm:w-auto justify-center">
+                {[10, 25, 50, 100].map(amt => (
+                  <button
+                    key={amt}
+                    disabled={isPlaying}
+                    onClick={() => {
+                      setBetAmount(amt);
+                      bridge.playSfx('click');
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition ${
+                      betAmount === amt
+                        ? 'bg-amber-500 text-slate-950 shadow scale-105'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🪙 {amt}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                disabled={isPlaying}
+                onClick={dealBaccarat}
+                className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-black text-sm hover:brightness-110 active:scale-95 shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                <span>{isPlaying ? 'กำลังเปิดไพ่...' : `วางเดิมพัน (${betAmount} เหรียญ)`}</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </FirstPersonHands>
+
       </div>
     </div>
   );

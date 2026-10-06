@@ -5,6 +5,8 @@ import type { Card } from '../../engines/card/CardTypes';
 import { DeckEngine } from '../../engines/card/Deck';
 import { CardVisual } from '../../engines/card/CardVisual';
 import { bridge } from '../../sdk/MeGameBridge';
+import { DealerAvatar, type DealerMood } from '../../components/table/DealerAvatar';
+import { FirstPersonHands } from '../../components/table/FirstPersonHands';
 
 interface PokerGameProps {
   onBackToHub: () => void;
@@ -35,6 +37,9 @@ export const PokerGame: React.FC<PokerGameProps> = ({ onBackToHub }) => {
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [winnerMessage, setWinnerMessage] = useState<string>('');
   const [gameOver, setGameOver] = useState<boolean>(false);
+  const [dealerMood, setDealerMood] = useState<DealerMood>('idle');
+  const [dealerSpeech, setDealerSpeech] = useState<string>('Texas Hold\'em เริ่มต้นแล้วครับ เช็คหรือตามได้เลย');
+  const [isDealingAnim, setIsDealingAnim] = useState<boolean>(false);
 
   const startNewHand = () => {
     const rawDeck = DeckEngine.shuffle(DeckEngine.createStandardDeck());
@@ -123,7 +128,10 @@ export const PokerGame: React.FC<PokerGameProps> = ({ onBackToHub }) => {
     if (nextPhase === 'showdown') {
       runShowdown(nextComm);
     } else {
+      setIsDealingAnim(true);
+      setTimeout(() => setIsDealingAnim(false), 400);
       setStatusMessage(`เข้าสู่ช่วง ${nextPhase.toUpperCase()} — ตาของคุณ`);
+      setDealerSpeech(`เปิดไพ่กลางช่วง ${nextPhase.toUpperCase()} เรียบร้อยครับ วางแผนตาต่อไปได้เลย`);
     }
   };
 
@@ -149,6 +157,8 @@ export const PokerGame: React.FC<PokerGameProps> = ({ onBackToHub }) => {
     if (winner.id === 0) {
       bridge.playSfx('victory');
       confetti({ particleCount: 80, spread: 70 });
+      setDealerMood('shocked');
+      setDealerSpeech(`โอ้โห! คุณกวาด Pot ${pot} ชิปไปด้วย ${winner.handRankName}! เก่งมากครับ`);
       setWinnerMessage(`🎉 คุณชนะเลิศ! ได้รับ Pot ทั้งหมด ${pot} ชิป (${winner.handRankName})`);
       bridge.recordGameResult({
         gameId: 'poker',
@@ -157,8 +167,11 @@ export const PokerGame: React.FC<PokerGameProps> = ({ onBackToHub }) => {
       });
     } else {
       bridge.playSfx('gameover');
+      setDealerMood('happy');
+      setDealerSpeech(`${winner.name} ชนะ Pot ไปด้วย ${winner.handRankName} ตาหน้าลุยใหม่ครับ!`);
       setWinnerMessage(`${winner.name} ชนะเลิศด้วย ${winner.handRankName} รับ Pot ${pot} ชิป`);
     }
+
   };
 
   // Player Actions
@@ -233,119 +246,134 @@ export const PokerGame: React.FC<PokerGameProps> = ({ onBackToHub }) => {
       </div>
 
       {/* Poker Table Felt */}
-      <div className="flex-1 flex flex-col justify-between bg-gradient-to-b from-emerald-950/60 via-slate-900 to-slate-950 border-4 border-amber-600/40 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
-        {/* Opponents Seats (Top Row) */}
-        <div className="grid grid-cols-3 gap-3 w-full">
-          {players.slice(1).map(bot => (
-            <div
-              key={bot.id}
-              className={`flex flex-col items-center p-3 rounded-2xl border transition ${
-                bot.folded
-                  ? 'bg-slate-900/40 border-slate-800 opacity-50'
-                  : 'bg-slate-900/80 border-emerald-500/30'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{bot.avatar}</span>
-                <span className="text-xs font-bold text-slate-200">{bot.name}</span>
-              </div>
-              <div className="text-[11px] text-amber-400 font-mono font-bold mb-2">
-                🪙 {bot.chips}
-              </div>
+      <div className="flex-1 flex flex-col justify-between bg-gradient-to-b from-emerald-950/70 via-slate-900 to-slate-950 border-4 border-amber-600/40 rounded-3xl p-4 sm:p-6 relative overflow-hidden shadow-2xl">
+        {/* Table Felt Radial Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-600/15 via-transparent to-transparent pointer-events-none" />
 
-              {/* Bot Hole Cards */}
-              <div className="flex gap-1.5">
-                {bot.holeCards.map(c => (
-                  <CardVisual
-                    key={c.id}
-                    card={c}
-                    faceDown={phase !== 'showdown'}
-                    size="sm"
-                  />
-                ))}
+        {/* Dealer and Opponents Header */}
+        <div className="flex flex-col items-center relative z-10">
+          <DealerAvatar
+            mood={dealerMood}
+            speechText={dealerSpeech}
+            name="ดีลเลอร์ เจษฎา"
+            isDealing={isDealingAnim}
+          />
+
+          {/* Opponents Seats (Top Row) */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full max-w-lg mt-2">
+            {players.slice(1).map(bot => (
+              <div
+                key={bot.id}
+                className={`flex flex-col items-center p-2 rounded-xl border transition ${
+                  bot.folded
+                    ? 'bg-slate-900/40 border-slate-800 opacity-40'
+                    : 'bg-slate-900/80 border-amber-500/30 shadow-md'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-sm">{bot.avatar}</span>
+                  <span className="text-[11px] font-bold text-slate-200">{bot.name}</span>
+                </div>
+                <div className="text-[10px] text-amber-400 font-mono font-bold mb-1">
+                  🪙 {bot.chips}
+                </div>
+
+                {/* Bot Hole Cards */}
+                <div className="flex gap-1">
+                  {bot.holeCards.map(c => (
+                    <CardVisual
+                      key={c.id}
+                      card={c}
+                      faceDown={phase !== 'showdown'}
+                      size="sm"
+                    />
+                  ))}
+                </div>
+                {phase === 'showdown' && bot.handRankName && (
+                  <span className="text-[9px] text-indigo-300 mt-0.5 font-bold">
+                    {bot.handRankName}
+                  </span>
+                )}
               </div>
-              {phase === 'showdown' && bot.handRankName && (
-                <span className="text-[10px] text-indigo-300 mt-1 font-bold">
-                  {bot.handRankName}
-                </span>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Center Community Cards & Pot Stage */}
-        <div className="my-auto py-6 flex flex-col items-center justify-center">
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/60 border border-amber-500/40 text-amber-400 font-black text-sm mb-4 shadow-lg">
+        <div className="my-auto py-3 flex flex-col items-center justify-center relative z-10">
+          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/70 border border-amber-500/50 text-amber-400 font-black text-sm mb-2 shadow-lg">
             <Coins className="w-4 h-4" />
             <span>POT รวม: {pot} ชิป</span>
           </div>
 
           {/* 5 Community Cards */}
-          <div className="flex gap-2.5 min-h-[96px] items-center p-3 rounded-2xl bg-black/40 border border-slate-800">
+          <div className="flex gap-2 min-h-[88px] sm:min-h-[96px] items-center p-2.5 rounded-2xl bg-black/50 border border-slate-800 shadow-inner">
             {communityCards.length > 0 ? (
               communityCards.map(c => (
                 <CardVisual key={c.id} card={c} size="md" />
               ))
             ) : (
-              <span className="text-xs text-slate-500 py-4 px-8">
+              <span className="text-xs text-slate-500 py-3 px-6">
                 รอเปิด Flop (3 ใบแรก)
               </span>
             )}
           </div>
 
-          <div className="text-xs text-amber-300 font-mono mt-3">
+          <div className="text-xs text-amber-300 font-mono mt-2 text-center">
             {statusMessage}
           </div>
         </div>
 
-        {/* Player 0 (You) Area */}
-        <div className="flex flex-col items-center w-full border-t border-slate-800/80 pt-4">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-xl">😎</span>
-            <span className="text-sm font-bold text-slate-100">คุณ (Player)</span>
-            <span className="text-xs font-mono font-bold text-amber-400 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
-              ชิป: {p0?.chips}
-            </span>
-          </div>
-
-          {/* Your Hole Cards */}
-          <div className="flex gap-3 mb-4">
-            {p0?.holeCards.map(c => (
-              <CardVisual key={c.id} card={c} size="lg" />
-            ))}
-          </div>
-
-          {/* Action Buttons */}
-          {!p0?.folded && phase !== 'showdown' ? (
-            <div className="flex gap-3 w-full max-w-sm">
-              <button
-                onClick={() => handlePlayerAction('fold')}
-                className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition"
-              >
-                หมอบ (FOLD)
-              </button>
-              <button
-                onClick={() => handlePlayerAction('call')}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition"
-              >
-                ตาม (CALL)
-              </button>
-              <button
-                onClick={() => handlePlayerAction('raise')}
-                className="flex-1 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition"
-              >
-                เกทับ (RAISE)
-              </button>
+        {/* Player 0 (You) First-Person POV Area */}
+        <FirstPersonHands isBetting={phase !== 'showdown' && !p0?.folded}>
+          <div className="flex flex-col items-center w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">ไพ่ในมือของคุณ</span>
+              <span className="text-xs font-mono font-bold text-amber-400 bg-slate-900/90 px-2.5 py-0.5 rounded-full border border-amber-500/30 shadow">
+                ชิปคงเหลือ: {p0?.chips}
+              </span>
             </div>
-          ) : (
-            <button
-              onClick={startNewHand}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-sm"
-            >
-              แจกมือใหม่
-            </button>
-          )}
-        </div>
+
+            {/* Your Hole Cards */}
+            <div className="flex gap-2.5 mb-3 p-2 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-sm shadow-xl">
+              {p0?.holeCards.map(c => (
+                <CardVisual key={c.id} card={c} size="md" />
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            {!p0?.folded && phase !== 'showdown' ? (
+              <div className="flex gap-2.5 w-full max-w-sm justify-center">
+                <button
+                  onClick={() => handlePlayerAction('fold')}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition active:scale-95 shadow"
+                >
+                  หมอบ (FOLD)
+                </button>
+                <button
+                  onClick={() => handlePlayerAction('call')}
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition active:scale-95"
+                >
+                  ตาม (CALL)
+                </button>
+                <button
+                  onClick={() => handlePlayerAction('raise')}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-600/30 transition active:scale-95"
+                >
+                  เกทับ (RAISE)
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={startNewHand}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 active:scale-95"
+              >
+                แจกมือใหม่
+              </button>
+            )}
+          </div>
+        </FirstPersonHands>
+
 
         {/* Winner Banner */}
         {gameOver && (

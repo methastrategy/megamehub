@@ -45,3 +45,22 @@
 .animate-pulse-subtle {
   animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+@keyframes dealerDealLeft {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(18deg) translateY(4px); }
+}
+
+@keyframes dealerDealRight {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-24deg) translateY(6px); }
+}
+
+.animate-dealer-deal-left {
+  animation: dealerDealLeft 0.6s ease-in-out infinite;
+}
+
+.animate-dealer-deal-right {
+  animation: dealerDealRight 0.6s ease-in-out infinite;
+}
+

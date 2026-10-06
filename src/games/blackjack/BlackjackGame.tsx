@@ -5,6 +5,8 @@ import type { Card } from '../../engines/card/CardTypes';
 import { DeckEngine } from '../../engines/card/Deck';
 import { CardVisual } from '../../engines/card/CardVisual';
 import { bridge } from '../../sdk/MeGameBridge';
+import { DealerAvatar, type DealerMood } from '../../components/table/DealerAvatar';
+import { FirstPersonHands } from '../../components/table/FirstPersonHands';
 
 interface BlackjackGameProps {
   onBackToHub: () => void;
@@ -21,6 +23,9 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({ onBackToHub }) => 
   const [resultMessage, setResultMessage] = useState<string>('');
   const [resultType, setResultType] = useState<'win' | 'loss' | 'push' | 'blackjack' | null>(null);
   const [playerCoins, setPlayerCoins] = useState<number>(() => bridge.getProfile().coins);
+  const [dealerMood, setDealerMood] = useState<DealerMood>('idle');
+  const [dealerSpeech, setDealerSpeech] = useState<string>('วางเดิมพันแล้วเริ่มแจกไพ่เลยครับ!');
+  const [isDealingAnim, setIsDealingAnim] = useState<boolean>(false);
 
   // Sync profile coins
   useEffect(() => {
@@ -56,31 +61,41 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({ onBackToHub }) => 
     const initialPlayer = [p1, p2];
     const initialDealer = [d1, d2];
 
-    setShoe(newShoe);
-    setPlayerHand(initialPlayer);
-    setDealerHand(initialDealer);
-    setResultMessage('');
-    setResultType(null);
+    setIsDealingAnim(true);
+    setDealerMood('dealing');
+    setDealerSpeech('แจกไพ่ครับ! ขอให้เปิดมาปังๆ');
 
-    // Check Natural Blackjack
-    const pScore = DeckEngine.calculateBlackjackScore(initialPlayer);
-    if (pScore.isBlackjack) {
-      // Reveal dealer
-      const revealedDealer: Card[] = [d1, { ...d2, faceUp: true }];
-      setDealerHand(revealedDealer);
-      const dScore = DeckEngine.calculateBlackjackScore(revealedDealer);
+    setTimeout(() => {
+      setIsDealingAnim(false);
+      setDealerMood('idle');
+      setShoe(newShoe);
+      setPlayerHand(initialPlayer);
+      setDealerHand(initialDealer);
+      setResultMessage('');
+      setResultType(null);
 
-      if (dScore.isBlackjack) {
-        resolveRound(initialPlayer, revealedDealer, 'push', 'เสมอ! ทั้งคู่ได้ Natural Blackjack');
-      } else {
-        resolveRound(initialPlayer, revealedDealer, 'blackjack', '🎉 BLACKJACK! ชนะรางวัล 3 ต่อ 2');
+      // Check Natural Blackjack
+      const pScore = DeckEngine.calculateBlackjackScore(initialPlayer);
+      if (pScore.isBlackjack) {
+        // Reveal dealer
+        const revealedDealer: Card[] = [d1, { ...d2, faceUp: true }];
+        setDealerHand(revealedDealer);
+        const dScore = DeckEngine.calculateBlackjackScore(revealedDealer);
+
+        if (dScore.isBlackjack) {
+          resolveRound(initialPlayer, revealedDealer, 'push', 'เสมอ! ทั้งคู่ได้ Natural Blackjack');
+        } else {
+          resolveRound(initialPlayer, revealedDealer, 'blackjack', '🎉 BLACKJACK! ชนะรางวัล 3 ต่อ 2');
+        }
+        return;
       }
-      return;
-    }
 
-    setStatus('player_turn');
-    bridge.playSfx('click');
+      setStatus('player_turn');
+      setDealerSpeech('ถึงตาคุณแล้วครับ จะ Hit หรือ Stand ดี?');
+      bridge.playSfx('click');
+    }, 500);
   };
+
 
   // Player Hits
   const handleHit = () => {
@@ -193,16 +208,25 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({ onBackToHub }) => 
       payout = Math.floor(currentBet * 2.5);
       bridge.playSfx('victory');
       confetti({ particleCount: 80, spread: 70 });
+      setDealerMood('shocked');
+      setDealerSpeech('อูยยย! แบล็คแจ็คเต็มคาราเบลเลย ยินดีด้วยครับ!');
     } else if (type === 'win') {
       payout = currentBet * 2;
       bridge.playSfx('correct');
       confetti({ particleCount: 50, spread: 50 });
+      setDealerMood('shocked');
+      setDealerSpeech('สุดยอดครับ! รอบนี้คุณกินเต็ม');
     } else if (type === 'push') {
       payout = currentBet;
       bridge.playSfx('tick');
+      setDealerMood('idle');
+      setDealerSpeech('แต้มเสมอกัน คืนชิปเดิมพันให้ครับ');
     } else {
       bridge.playSfx('gameover');
+      setDealerMood('happy');
+      setDealerSpeech('รอบนี้โต๊ะขอนะครับเฮีย สู้ใหม่ตาหน้า!');
     }
+
 
     if (payout > 0) {
       bridge.recordGameResult({
@@ -238,30 +262,43 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({ onBackToHub }) => 
       </div>
 
       {/* Felt Casino Table */}
-      <div className="flex-1 flex flex-col justify-between bg-gradient-to-b from-emerald-950/40 via-slate-900 to-slate-900 border-2 border-emerald-600/30 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
-        {/* Dealer Area */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">🤵</span>
-            <span className="text-sm font-bold text-slate-300">เจ้ามือ (Dealer)</span>
+      <div className="flex-1 flex flex-col justify-between bg-gradient-to-b from-emerald-950/70 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 relative overflow-hidden shadow-2xl">
+        {/* Table Felt Radial Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-600/20 via-transparent to-transparent pointer-events-none" />
+
+        {/* Dealer POV Area */}
+        <div className="flex flex-col items-center relative z-10">
+          <DealerAvatar
+            mood={dealerMood}
+            speechText={dealerSpeech}
+            name="ดีลเลอร์ สมหวัง"
+            isDealing={isDealingAnim}
+          />
+
+          <div className="flex items-center gap-2 mt-2 mb-2">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">โต๊ะไพ่เจ้ามือ</span>
             {dealerHand.length > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-amber-400">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800/90 border border-slate-700 text-xs font-mono font-bold text-amber-400 shadow">
                 แต้ม: {status === 'player_turn' ? `${dScore.score} + ?` : dScore.score}
               </span>
             )}
           </div>
 
-          <div className="flex gap-2.5 min-h-[96px] sm:min-h-[112px] items-center">
-            {dealerHand.map(card => (
-              <CardVisual key={card.id} card={card} faceDown={card.faceUp === false} size="md" />
-            ))}
+          <div className="flex gap-2.5 min-h-[96px] sm:min-h-[112px] items-center justify-center p-2 bg-emerald-950/30 rounded-2xl border border-emerald-500/20 shadow-inner">
+            {dealerHand.length === 0 ? (
+              <div className="text-xs text-emerald-300/40 italic">ไพ่เจ้ามือจะถูกแจกที่นี่</div>
+            ) : (
+              dealerHand.map(card => (
+                <CardVisual key={card.id} card={card} faceDown={card.faceUp === false} size="md" />
+              ))
+            )}
           </div>
         </div>
 
         {/* Center Banner / Result Message */}
-        <div className="my-4 py-4 border-y border-slate-800/80 flex flex-col items-center justify-center min-h-[90px]">
+        <div className="my-3 py-2 border-y border-emerald-600/20 flex flex-col items-center justify-center min-h-[70px] relative z-10">
           {resultMessage ? (
-            <div className={`px-6 py-2.5 rounded-2xl text-center font-black text-lg animate-scale-up shadow-xl ${
+            <div className={`px-6 py-2.5 rounded-2xl text-center font-black text-base sm:text-lg animate-scale-up shadow-xl ${
               resultType === 'win' || resultType === 'blackjack'
                 ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
                 : resultType === 'loss'
@@ -271,91 +308,98 @@ export const BlackjackGame: React.FC<BlackjackGameProps> = ({ onBackToHub }) => 
               {resultMessage}
             </div>
           ) : status === 'player_turn' ? (
-            <div className="text-xs uppercase tracking-widest text-slate-400 font-bold">
-              ตาของคุณ: เลือก Hit หรือ Stand
+            <div className="text-xs uppercase tracking-widest text-emerald-400 font-bold animate-pulse">
+              ตาของคุณ: เลือก Hit เพื่อขอไพ่เพิ่ม หรือ Stand เพื่อหยุด
             </div>
           ) : (
-            <div className="text-xs text-slate-500">
-              วางเงินเดิมพันแล้วกด "แจกไพ่" เพื่อเริ่มเกม
+            <div className="text-xs text-slate-400">
+              เลือกชิปเดิมพันแล้วกด "แจกไพ่" เพื่อเริ่มเกม
             </div>
           )}
         </div>
 
-        {/* Player Area */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">😎</span>
-            <span className="text-sm font-bold text-slate-200">คุณ (Player)</span>
-            {playerHand.length > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-emerald-400">
-                แต้ม: {pScore.score} {pScore.isBust ? '(เกิน)' : ''}
-              </span>
-            )}
-          </div>
-
-          <div className="flex gap-2.5 min-h-[96px] sm:min-h-[112px] items-center mb-4">
-            {playerHand.map(card => (
-              <CardVisual key={card.id} card={card} size="md" />
-            ))}
-          </div>
-
-          {/* Action Buttons */}
-          {status === 'player_turn' ? (
-            <div className="flex gap-3 w-full max-w-sm">
-              <button
-                onClick={handleHit}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-500 active:scale-95 shadow-lg shadow-indigo-600/30 transition"
-              >
-                จั่วไพ่ (HIT)
-              </button>
-              <button
-                onClick={handleStand}
-                className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-500 active:scale-95 shadow-lg shadow-amber-600/30 transition"
-              >
-                พอแค่นี้ (STAND)
-              </button>
-              {playerHand.length === 2 && (
-                <button
-                  onClick={handleDoubleDown}
-                  className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-500 active:scale-95 shadow-lg shadow-rose-600/30 transition"
-                >
-                  เบิ้ล 2 เท่า (DOUBLE)
-                </button>
+        {/* First Person Player POV Area */}
+        <FirstPersonHands isBetting={status === 'betting'} isInspecting={status === 'player_turn'}>
+          <div className="flex flex-col items-center w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-bold text-emerald-300 uppercase tracking-wider">ไพ่ในมือของคุณ</span>
+              {playerHand.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono font-bold text-emerald-400 shadow">
+                  แต้ม: {pScore.score} {pScore.isBust ? '(เกิน!)' : ''}
+                </span>
               )}
             </div>
-          ) : (
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
-              {/* Bet Amount Selector */}
-              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl w-full sm:w-auto justify-center">
-                {[10, 25, 50, 100].map(amt => (
-                  <button
-                    key={amt}
-                    disabled={status !== 'betting'}
-                    onClick={() => {
-                      setCurrentBet(amt);
-                      bridge.playSfx('click');
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
-                      currentBet === amt
-                        ? 'bg-amber-500 text-slate-950 shadow'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    🪙 {amt}
-                  </button>
-                ))}
-              </div>
 
-              <button
-                onClick={dealRound}
-                className="w-full sm:flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm hover:brightness-110 active:scale-95 shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2"
-              >
-                <Play className="w-4 h-4 fill-slate-950" />
-                <span>แจกไพ่ (เดิมพัน {currentBet})</span>
-              </button>
+            {/* Cards in Hand */}
+            <div className="flex gap-2.5 min-h-[96px] sm:min-h-[112px] items-center mb-4 p-2 bg-black/40 rounded-2xl border border-white/10 backdrop-blur-sm shadow-xl">
+              {playerHand.length === 0 ? (
+                <div className="text-xs text-slate-500 italic">รอรับการ์ดจากดีลเลอร์</div>
+              ) : (
+                playerHand.map(card => (
+                  <CardVisual key={card.id} card={card} size="md" />
+                ))
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Action Buttons */}
+            {status === 'player_turn' ? (
+              <div className="flex gap-2.5 w-full max-w-sm justify-center">
+                <button
+                  onClick={handleHit}
+                  className="flex-1 py-3 px-3 rounded-xl bg-indigo-600 text-white font-bold text-xs sm:text-sm hover:bg-indigo-500 active:scale-95 shadow-lg shadow-indigo-600/30 transition"
+                >
+                  จั่วไพ่ (HIT)
+                </button>
+                <button
+                  onClick={handleStand}
+                  className="flex-1 py-3 px-3 rounded-xl bg-amber-600 text-white font-bold text-xs sm:text-sm hover:bg-amber-500 active:scale-95 shadow-lg shadow-amber-600/30 transition"
+                >
+                  พอแค่นี้ (STAND)
+                </button>
+                {playerHand.length === 2 && (
+                  <button
+                    onClick={handleDoubleDown}
+                    className="flex-1 py-3 px-3 rounded-xl bg-rose-600 text-white font-bold text-xs sm:text-sm hover:bg-rose-500 active:scale-95 shadow-lg shadow-rose-600/30 transition"
+                  >
+                    เบิ้ล x2
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md justify-center">
+                {/* Bet Amount Selector */}
+                <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1 rounded-2xl w-full sm:w-auto justify-center">
+                  {[10, 25, 50, 100].map(amt => (
+                    <button
+                      key={amt}
+                      disabled={status !== 'betting'}
+                      onClick={() => {
+                        setCurrentBet(amt);
+                        bridge.playSfx('click');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition ${
+                        currentBet === amt
+                          ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      🪙 {amt}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={dealRound}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm hover:brightness-110 active:scale-95 shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4 fill-slate-950" />
+                  <span>แจกไพ่ (เดิมพัน {currentBet})</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </FirstPersonHands>
+
       </div>
     </div>
   );
