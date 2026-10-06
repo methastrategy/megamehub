@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, Volume2, VolumeX, Wifi, WifiOff, Download, User, Check, Edit2 } from 'lucide-react';
+import { Gamepad2, Volume2, VolumeX, Wifi, WifiOff, Download, User, Check, Edit2, Radio } from 'lucide-react';
 import type { PlayerProfile } from '../sdk/types';
 import { bridge } from '../sdk/MeGameBridge';
 import { sounds } from '../utils/soundEffects';
 
 interface HubHeaderProps {
   onOpenInstallModal: () => void;
+  onOpenMultiplayerModal: () => void;
 }
 
 const AVATAR_OPTIONS = ['😎', '🎮', '🐱', '🦊', '🚀', '👑', '⚡', '🐉'];
 
-export const HubHeader: React.FC<HubHeaderProps> = ({ onOpenInstallModal }) => {
+export const HubHeader: React.FC<HubHeaderProps> = ({ onOpenInstallModal, onOpenMultiplayerModal }) => {
   const [profile, setProfile] = useState<PlayerProfile>(bridge.getProfile());
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(sounds.enabled);
@@ -86,6 +87,19 @@ export const HubHeader: React.FC<HubHeaderProps> = ({ onOpenInstallModal }) => {
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Multiplayer Room Button */}
+            <button
+              onClick={() => {
+                bridge.playSfx('click');
+                onOpenMultiplayerModal();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 text-xs font-bold text-orange-300 hover:brightness-125 transition shadow-sm"
+              title="สร้างหรือเข้าร่วมห้องเล่นด้วยกัน Realtime"
+            >
+              <Radio className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+              <span>ห้องออนไลน์</span>
+            </button>
+
             {/* Install App button */}
             <button
               onClick={() => {

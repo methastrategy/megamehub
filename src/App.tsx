@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { 
   Search, Sparkles, Flame, Users, Swords, 
-  Gamepad2, ArrowRight, ShieldCheck, Heart, Crown, Coins, Beer, Type
+  Gamepad2, ArrowRight, ShieldCheck, Heart, Crown, Coins, Type, Radio
 } from 'lucide-react';
 import type { GameMetadata, GameCategory } from './sdk/types';
 import { HubHeader } from './components/HubHeader';
 import { GameCard } from './components/GameCard';
 import { InstallModal } from './components/InstallModal';
+import { MultiplayerModal } from './components/MultiplayerModal';
 import { ChayenGame } from './games/chayen/ChayenGame';
 import { CardClashGame } from './games/cardclash/CardClashGame';
 import { NeonSnakeGame } from './games/neonsnake/NeonSnakeGame';
@@ -183,6 +184,7 @@ export function App() {
   const [selectedCategory, setSelectedCategory] = useState<GameCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isMultiplayerModalOpen, setIsMultiplayerModalOpen] = useState(false);
 
   // Filter games
   const filteredGames = useMemo(() => {
@@ -240,7 +242,10 @@ export function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Header */}
-      <HubHeader onOpenInstallModal={() => setIsInstallModalOpen(true)} />
+      <HubHeader 
+        onOpenInstallModal={() => setIsInstallModalOpen(true)} 
+        onOpenMultiplayerModal={() => setIsMultiplayerModalOpen(true)} 
+      />
 
       {/* Main Container */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6 md:py-8 flex flex-col gap-8">
@@ -255,7 +260,7 @@ export function App() {
               เปิดเล่น <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">Chayen, ไพ่วงเพื่อน & Wordle</span> ได้ทันที
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-6">
-              ทายคำติดหน้าผาก, ไพ่โดเรม่อน, ไพ่สลาฟ, ดัมมี่, โป๊กเกอร์, แบล็คแจ็ค, เป่ายิ้งฉุบ Tournament และ Wordle (ไทย/อังกฤษ) เล่นออฟไลน์ได้ 100%
+              ทายคำติดหน้าผาก, ไพ่โดเรม่อน, ไพ่สลาฟ, ดัมมี่, โป๊กเกอร์, แบล็คแจ็ค, เป่ายิ้งฉุบ Tournament และ Wordle (ไทย/อังกฤษ) รองรับทั้ง Offline และห้องออนไลน์ 4 หลัก
             </p>
             <div className="flex flex-wrap gap-3">
               <button
@@ -271,22 +276,22 @@ export function App() {
               <button
                 onClick={() => {
                   bridge.playSfx('click');
+                  setIsMultiplayerModalOpen(true);
+                }}
+                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 text-orange-300 hover:text-white font-bold text-sm hover:bg-slate-800 transition flex items-center gap-2"
+              >
+                <Radio className="w-4 h-4 text-orange-400 animate-pulse" />
+                <span>ห้องออนไลน์ 4 หลัก</span>
+              </button>
+              <button
+                onClick={() => {
+                  bridge.playSfx('click');
                   setActiveGameId('wordle');
                 }}
                 className="px-5 py-3 rounded-2xl bg-slate-900 border border-emerald-500/40 text-emerald-300 hover:text-white font-bold text-sm hover:bg-slate-800 transition flex items-center gap-2"
               >
                 <Type className="w-4 h-4 text-emerald-400" />
                 <span>Wordle (TH/EN)</span>
-              </button>
-              <button
-                onClick={() => {
-                  bridge.playSfx('click');
-                  setActiveGameId('doraemon');
-                }}
-                className="px-5 py-3 rounded-2xl bg-slate-900 border border-amber-500/40 text-amber-300 hover:text-white font-bold text-sm hover:bg-slate-800 transition flex items-center gap-2"
-              >
-                <Beer className="w-4 h-4 text-amber-400" />
-                <span>ไพ่โดเรม่อน</span>
               </button>
               <button
                 onClick={() => {
@@ -444,6 +449,13 @@ export function App() {
       <InstallModal
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
+      />
+
+      {/* Realtime Multiplayer Room Modal */}
+      <MultiplayerModal
+        isOpen={isMultiplayerModalOpen}
+        onClose={() => setIsMultiplayerModalOpen(false)}
+        onLaunchGame={(gameId) => setActiveGameId(gameId)}
       />
     </div>
   );
