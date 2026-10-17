@@ -22,6 +22,7 @@ import { RPSTournamentGame } from './games/rps/RPSTournamentGame';
 import { TwentyFortyEightGame } from './games/twentyfortyeight/TwentyFortyEightGame';
 import { TetrisGame } from './games/tetris/TetrisGame';
 import { SnookerPoolGame } from './games/pool/SnookerPoolGame';
+import { DragonRunnerGame } from './games/dragonrunner/DragonRunnerGame';
 import { bridge } from './sdk/MeGameBridge';
 
 const GAME_CATALOG: GameMetadata[] = [
@@ -221,6 +222,20 @@ const GAME_CATALOG: GameMetadata[] = [
     isOfflineReady: true,
     rating: 4.9,
     playCount: 2310
+  },
+  {
+    id: 'dragonrunner',
+    title: 'Dragon Runner มังกรเบเร่ต์',
+    subtitle: 'เกมวิ่งกระโดดสไตล์เรโทร 2D',
+    description: 'พาน้องมังกรเขียวหมวกเบเร่ต์แดงวิ่งตะลุย กระโดดข้ามกล้องสำรวจ แท่งเทียนกราฟ และสไลด์หลบโดรน พร้อมเก็บเหรียญทองและแก้วชาเย็นบูสต์เกราะ!',
+    category: 'arcade',
+    tags: ['Arcade', 'Offline', 'Mascot', 'Retro Runner'],
+    icon: '🐲',
+    gradient: 'from-emerald-500 via-teal-500 to-amber-500',
+    players: '1 คน',
+    isOfflineReady: true,
+    rating: 5.0,
+    playCount: 1980
   }
 ];
 
@@ -362,6 +377,9 @@ export function App() {
   }
   if (activeGameId === 'pool') {
     return <SnookerPoolGame onBackToHub={handleBackToHub} />;
+  }
+  if (activeGameId === 'dragonrunner') {
+    return <DragonRunnerGame onBackToHub={handleBackToHub} />;
   }
 
   // Render Hub Lobby
