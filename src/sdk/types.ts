@@ -16,6 +16,8 @@ export interface GameMetadata {
   playCount: number;
 }
 
+export type VipTier = 'free' | 'pro' | 'elite';
+
 export interface PlayerProfile {
   id: string;
   name: string;
@@ -23,6 +25,11 @@ export interface PlayerProfile {
   coins: number;
   unlockedDecks: string[];
   highScores: Record<string, number>;
+  isVip?: boolean;
+  vipTier?: VipTier;
+  vipExpiresAt?: number | null;
+  dailyBonusLastClaimed?: string | null;
+  dailyBonusStreak?: number;
 }
 
 export interface ChayenDeck {

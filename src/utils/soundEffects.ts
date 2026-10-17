@@ -3,7 +3,51 @@
 
 class SoundManager {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   public enabled: boolean = true;
+  public volume: number = 0.8;
+  public hapticsEnabled: boolean = true;
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedEnabled = localStorage.getItem('megamehub_audio_enabled');
+        if (storedEnabled !== null) this.enabled = storedEnabled === 'true';
+
+        const storedVol = localStorage.getItem('megamehub_audio_volume');
+        if (storedVol !== null) this.volume = parseFloat(storedVol);
+
+        const storedHaptics = localStorage.getItem('megamehub_haptics_enabled');
+        if (storedHaptics !== null) this.hapticsEnabled = storedHaptics === 'true';
+      } catch (e) {
+        console.warn('Failed to load audio settings:', e);
+      }
+    }
+  }
+
+  public setVolume(vol: number) {
+    this.volume = Math.max(0, Math.min(1, vol));
+    try {
+      localStorage.setItem('megamehub_audio_volume', this.volume.toString());
+    } catch {}
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+    }
+  }
+
+  public setEnabled(val: boolean) {
+    this.enabled = val;
+    try {
+      localStorage.setItem('megamehub_audio_enabled', val.toString());
+    } catch {}
+  }
+
+  public setHapticsEnabled(val: boolean) {
+    this.hapticsEnabled = val;
+    try {
+      localStorage.setItem('megamehub_haptics_enabled', val.toString());
+    } catch {}
+  }
 
   private getContext(): AudioContext | null {
     if (!this.enabled) return null;
@@ -11,12 +55,19 @@ class SoundManager {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(this.volume, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
     return this.ctx;
+  }
+
+  private getDestination(ctx: AudioContext): AudioNode {
+    return this.masterGain || ctx.destination;
   }
 
   // Chime for correct answer (pleasant high double chime)
@@ -41,7 +92,7 @@ class SoundManager {
 
     osc1.connect(gain);
     osc2.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getDestination(ctx));
 
     osc1.start(now);
     osc2.start(now + 0.1);
@@ -66,7 +117,7 @@ class SoundManager {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getDestination(ctx));
 
     osc.start(now);
     osc.stop(now + 0.25);
@@ -88,7 +139,7 @@ class SoundManager {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getDestination(ctx));
 
     osc.start(now);
     osc.stop(now + 0.05);
@@ -110,7 +161,7 @@ class SoundManager {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getDestination(ctx));
 
     osc.start(now);
     osc.stop(now + 0.08);
@@ -133,7 +184,7 @@ class SoundManager {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getDestination(ctx));
 
     osc.start(now);
     osc.stop(now + 0.6);
@@ -156,7 +207,7 @@ class SoundManager {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.getDestination(ctx));
 
     osc.start(now);
     osc.stop(now + 0.06);
@@ -181,7 +232,7 @@ class SoundManager {
       gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.getDestination(ctx));
 
       osc.start(noteTime);
       osc.stop(noteTime + 0.35);

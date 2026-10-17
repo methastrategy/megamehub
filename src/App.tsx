@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   Search, Sparkles, Flame, Users, Swords, 
   Gamepad2, ArrowRight, ShieldCheck, Heart, Crown, Coins, Type, Radio
@@ -232,6 +232,82 @@ export function App() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isMultiplayerModalOpen, setIsMultiplayerModalOpen] = useState(false);
 
+  // Deep linking and browser history navigation
+  const navigateToGame = useCallback((gameId: string, replace = false) => {
+    setActiveGameId(gameId);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('game', gameId);
+      if (replace) {
+        window.history.replaceState({ gameId }, '', url.toString());
+      } else {
+        window.history.pushState({ gameId }, '', url.toString());
+      }
+    } catch (e) {
+      console.warn('History pushState error:', e);
+    }
+  }, []);
+
+  const handleBackToHub = useCallback(() => {
+    setActiveGameId(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('game');
+      if (window.location.hash) {
+        url.hash = '';
+      }
+      window.history.pushState({ gameId: null }, '', url.pathname + (url.search ? url.search : ''));
+    } catch (e) {
+      console.warn('History pushState error:', e);
+    }
+  }, []);
+
+  // Listen to browser popstate (back/forward buttons) and handle initial deep-link
+  useEffect(() => {
+    // 1. Check initial query params or hash
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash.replace(/^#\/?/, '');
+    const queryGame = params.get('game');
+    const hashGame = hash.startsWith('game=') ? hash.replace('game=', '') : hash;
+    const initialGameId = queryGame || hashGame;
+
+    if (initialGameId && GAME_CATALOG.some(g => g.id === initialGameId)) {
+      setActiveGameId(initialGameId);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('game', initialGameId);
+        window.history.replaceState({ gameId: initialGameId }, '', url.toString());
+      } catch (e) {
+        console.warn(e);
+      }
+    } else {
+      try {
+        window.history.replaceState({ gameId: null }, '', window.location.href);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    // 2. Handle browser Back & Forward button smoothly
+    const handlePopState = (event: PopStateEvent) => {
+      const stateGameId = event.state?.gameId;
+      if (stateGameId && GAME_CATALOG.some(g => g.id === stateGameId)) {
+        setActiveGameId(stateGameId);
+      } else {
+        const currentParams = new URLSearchParams(window.location.search);
+        const qGame = currentParams.get('game');
+        if (qGame && GAME_CATALOG.some(g => g.id === qGame)) {
+          setActiveGameId(qGame);
+        } else {
+          setActiveGameId(null);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   // Filter games
   const filteredGames = useMemo(() => {
     return GAME_CATALOG.filter(game => {
@@ -243,11 +319,6 @@ export function App() {
       return matchCategory && matchSearch;
     });
   }, [selectedCategory, searchQuery]);
-
-  // Handle Return to Lobby
-  const handleBackToHub = () => {
-    setActiveGameId(null);
-  };
 
   // Render Active Game if chosen
   if (activeGameId === 'chayen') {
@@ -309,7 +380,7 @@ export function App() {
           <div className="relative z-10 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>ศูนย์รวม 11 เกมปาร์ตี้, เกมไพ่ & มินิเกมออฟไลน์</span>
+              <span>ศูนย์รวม {GAME_CATALOG.length} เกมปาร์ตี้, เกมไพ่ & มินิเกมออฟไลน์</span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight mb-2">
               เปิดเล่น <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">Chayen, ไพ่วงเพื่อน & Wordle</span> ได้ทันที
@@ -321,7 +392,7 @@ export function App() {
               <button
                 onClick={() => {
                   bridge.playSfx('click');
-                  setActiveGameId('chayen');
+                  navigateToGame('chayen');
                 }}
                 className="px-6 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black text-sm hover:brightness-110 shadow-lg shadow-orange-500/25 flex items-center gap-2 transition"
               >
@@ -341,7 +412,7 @@ export function App() {
               <button
                 onClick={() => {
                   bridge.playSfx('click');
-                  setActiveGameId('wordle');
+                  navigateToGame('wordle');
                 }}
                 className="px-5 py-3 rounded-2xl bg-slate-900 border border-emerald-500/40 text-emerald-300 hover:text-white font-bold text-sm hover:bg-slate-800 transition flex items-center gap-2"
               >
@@ -373,7 +444,7 @@ export function App() {
           {/* Category Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
             {[
-              { id: 'all', label: 'ทั้งหมด (11)', icon: <Gamepad2 className="w-4 h-4" /> },
+              { id: 'all', label: `ทั้งหมด (${GAME_CATALOG.length})`, icon: <Gamepad2 className="w-4 h-4" /> },
               { id: 'cards', label: 'ไพ่ (สลาฟ/ดัมมี่)', icon: <Crown className="w-4 h-4" /> },
               { id: 'party', label: 'ปาร์ตี้ / วงเพื่อน', icon: <Users className="w-4 h-4" /> },
               { id: 'puzzle', label: 'พัซเซิล (Wordle)', icon: <Type className="w-4 h-4" /> },
@@ -432,7 +503,7 @@ export function App() {
                 <GameCard
                   key={game.id}
                   game={game}
-                  onPlay={id => setActiveGameId(id)}
+                  onPlay={id => navigateToGame(id)}
                 />
               ))}
             </div>
@@ -510,7 +581,7 @@ export function App() {
       <MultiplayerModal
         isOpen={isMultiplayerModalOpen}
         onClose={() => setIsMultiplayerModalOpen(false)}
-        onLaunchGame={(gameId) => setActiveGameId(gameId)}
+        onLaunchGame={(gameId) => navigateToGame(gameId)}
       />
     </div>
   );
