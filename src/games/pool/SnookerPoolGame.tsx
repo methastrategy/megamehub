@@ -439,6 +439,27 @@ export const SnookerPoolGame: React.FC<SnookerPoolGameProps> = ({ onBackToHub })
     }
   };
 
+  // Canvas Mobile Touch Aiming
+  const handleCanvasTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (ballsMoving) return;
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = TABLE_WIDTH / rect.width;
+    const scaleY = TABLE_HEIGHT / rect.height;
+    const touchX = (touch.clientX - rect.left) * scaleX;
+    const touchY = (touch.clientY - rect.top) * scaleY;
+
+    const cueBall = balls.find(b => b.isCue && !b.pocketed);
+    if (cueBall) {
+      const angle = Math.atan2(touchY - cueBall.y, touchX - cueBall.x);
+      setAimAngle(angle);
+    }
+  };
+
+
   return (
     <div className="w-full min-h-screen bg-slate-950 text-slate-100 flex flex-col p-4 max-w-4xl mx-auto select-none">
       {/* Top Header */}
@@ -509,9 +530,12 @@ export const SnookerPoolGame: React.FC<SnookerPoolGameProps> = ({ onBackToHub })
           width={TABLE_WIDTH}
           height={TABLE_HEIGHT}
           onMouseMove={handleCanvasMouseMove}
+          onTouchMove={handleCanvasTouchMove}
+          onTouchStart={handleCanvasTouchMove}
           onClick={shoot}
           className="w-full h-full rounded-2xl cursor-crosshair touch-none"
         />
+
       </div>
 
       {/* Bottom Cue Power Slider & Controls */}
